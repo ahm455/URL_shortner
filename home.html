@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>URL Shortener</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+
+    input, button {
+      padding: 10px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    input {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      width: 70%;
+    }
+
+    button {
+      background-color: #03dac6;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #018786;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background-color: #1e1e1e;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: left;
+      color: #f5f5f5;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #03dac6;
+    }
+
+    .url-box {
+      margin-top: 30px;
+    }
+
+    h1, h3 {
+      color: #bb86fc;
+    }
+
+    a {
+      color: #03dac6;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Flask URL Shortener</h1>
+
+  <div>
+    <input type="text" id="url" placeholder="Paste long URL here">
+    <button onclick="shorten()">Shorten</button>
+    <div id="result"></div>
+  </div>
+
+  <div class="url-box">
+    <h3>🔗 Your Shortened URLs</h3>
+    <table id="urlTable">
+      <thead>
+        <tr>
+          <th>Short Code</th>
+          <th>Original URL</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    function shorten() {
+      const url = document.getElementById("url").value;
+      fetch("/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.shortCode) {
+          loadUrls();
+          document.getElementById("result").innerHTML = `✅ Shortened to <a href="/${data.shortCode}" target="_blank">/${data.shortCode}</a>`;
+        } else {
+          document.getElementById("result").innerText = `❌ Error: ${data.error}`;
+        }
+      });
+    }
+
+    function loadUrls() {
+      fetch("/links")
+        .then(res => res.json())
+        .then(urls => {
+          const tableBody = document.querySelector("#urlTable tbody");
+          tableBody.innerHTML = "";
+          urls.forEach(url => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${url.shortCode}</td>
+              <td><input type="text" value="${url.url}" id="edit-${url.shortCode}"></td>
+              <td>
+                <button onclick="updateUrl('${url.shortCode}')">Update</button>
+                <button onclick="deleteUrl('${url.shortCode}')">Delete</button>
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+        });
+    }
+
+    function updateUrl(code) {
+      const newUrl = document.getElementById(`edit-${code}`).value;
+      fetch(`/shorten/${code}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: newUrl })
+      })
+      .then(() => loadUrls());
+    }
+
+    function deleteUrl(code) {
+      fetch(`/shorten/${code}`, { method: "DELETE" })
+        .then(() => loadUrls());
+    }
+
+    
+    loadUrls();
+  </script>
+</body>
+</html>
